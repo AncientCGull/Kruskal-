@@ -1,0 +1,16 @@
+#include <windows.h>
+
+namespace errors {
+
+    bool isError(char *a) {
+        MessageBox(NULL, a, "Error", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+
+    void isFileError(char *a, FILE *f, int seek) {
+        fclose(f);
+        MessageBox(NULL, a, "Error", MB_OK | MB_ICONERROR);
+        f = fopen("input.txt", "r+");
+        fseek(f, seek, SEEK_SET);
+    }
+}
