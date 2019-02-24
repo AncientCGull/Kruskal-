@@ -1,0 +1,216 @@
+#include <iostream>
+#include <windows.h>
+#include <cmath>
+#include <fstream>
+#include "vector.h"
+#include "errors.h"
+//#include "cycle.h"
+
+using namespace vec;
+using namespace errors;
+//using namespace cyc;
+
+typedef vector<char> string_t;
+typedef vector<pair<double, pair<string_t, string_t>>> matrix;
+
+int numOfEdges() {
+    FILE *f = fopen("input.txt", "r");;
+    int k = 0;
+    char c;
+    while (!feof(f)) {
+        c = fgetc(f);
+        if (c == '\n' || feof(f))
+            k++;
+    }
+    fclose(f);
+    return k;
+}
+
+int fillNodes (FILE* f, vector<string_t> &nodes) {
+    int k;
+    char temp;
+    do {
+        temp = fgetc(f);
+        if (temp == '\n')
+            break;
+        while (true) {
+            nodes[k].push_back(temp);
+            if (temp != ' ' && temp != ','){
+                k++;
+                break;
+            }
+        }
+    } while (true);
+    return k;
+}
+
+bool readStr (FILE *f, string_t &begin, string_t &end, double &node, int seek) {
+    int i = 0;
+    string_t temp;
+    char t;
+    node = 0;
+
+    do {
+        t = fgetc(f);
+        if (t == '\n' || feof(f))
+            break;
+        if (t != ' ') {
+            temp.push_back(t);
+            i++;
+        }
+    } while (true);
+
+    int index = 0;
+    if (temp[index] == ',')
+        isFileError("First node must be named.\nRewrite file and press ok", f, seek);
+
+    while (temp[index] != ',') {
+        begin.push_back(temp[index]);
+        index++;
+    }
+    index++;
+
+    if (temp[index] == ',')
+        isFileError("Second node must be named.\nRewrite file and press ok", f, seek);
+
+    while (temp[index] != ',') {
+        end.push_back(temp[index]);
+        index++;
+    }
+    index++;
+
+    if (temp[index] == '.' || index == i)
+        isFileError("Weight of edge is lost.\nRewrite file and press ok", f, seek);
+
+    while (temp[index] != '.' && temp[index] != 0) {
+        node *= 10;
+        node += temp[0] - '0';
+        index++;
+    }
+
+    i = 1;
+    if (temp[index] == '.'){
+        index++;
+        while (temp[index] != 0){
+            node += (temp[index] - '0') * pow(10, -i);
+            i++;
+            index++;
+        }
+    }
+
+    temp.del();
+
+    if (feof(f))
+        return 0;
+    else return 1;
+}
+
+matrix fillEdges (FILE *f, int num) {
+    matrix edges;
+    string_t begin, end;
+    double node;
+    bool check;
+    int i = 0, j;
+
+    do {
+        int seek = ftell(f);
+        check = readStr(f, begin, end, node, seek);
+        if (edges[i].first == -1) {
+            edges[i].first = node;
+            edges[i].second.first = begin;
+            edges[i].second.second = end;
+        }
+        else {
+            if (i == num)
+                break;
+            j = i - 1;
+            while (node < edges[j].first && j > -1)
+                j--;
+            if (j == i) {}
+            else
+                edges.shift(j);
+            edges[i].first = node;
+            edges[i].second.first = begin;
+            edges[i].second.second = end;
+            i++;
+        }
+    } while (check);
+    return edges;
+}
+
+bool isCycle (vector<pair<string_t, bool>> comp, string_t node) {
+    bool flag = true;
+    for (int i = 0; i < comp.size(); i++){
+        if (!comp[i].second) {
+            if (comp[i].first.size() == node.size())
+                for (int j = 0; j < comp[i].first.size(); j++) {
+                    if (comp[i].first[j] == node[j])
+                        flag = false;
+                    else {
+                        flag = true;
+                        comp[i].second = true;
+                        break;
+                    }
+                }
+            else flag = true;
+        }
+    }
+    return flag;
+}
+
+bool makeFrame (matrix edges, int size, FILE* &f, vector<string_t> nodes) {
+    vector<pair<string_t, bool>> comp;
+    for (int i = 0; i < comp.size(); i++) {
+        comp[i].second = false;
+        for (int j = 0; j < nodes[i].size(); j++)
+            comp[i].first.push_back(nodes[i][j]);
+    }
+    int newSize = 0;
+    for (int i = 0; i < edges.size(); i++) {
+        if (isCycle(comp, edges[i].second.second) || isCycle(comp, edges[i].second.first)) {}
+        else {
+            edges[i].first = -1;
+            newSize++;
+        }
+    }
+
+    newSize = edges.size() - newSize;
+
+    if (newSize < size - 1) {
+        fclose(f);
+        isError("Your graph has more than one component.\nRewrite file and press OK.");
+        f = fopen("input.txt", "r+");
+        edges.del();
+        return 1;
+    }
+
+    fclose(f);
+    std::ofstream fout;
+    fout.open("output.txt");
+    for (int i = 0; i < edges.size(); i++) {
+        for (int j = 0; j < edges[i].second.first.size(); j++)
+            fout << edges[i].second.first[j];
+        fout << ' - ' << edges[i].first << ' - ';
+        for (int j = 0; j < edges[i].second.second.size(); j++)
+            fout << edges[i].second.second[j];
+        //std::cout << component[i][i] << std::endl;
+    }
+
+    system("pause");
+    edges.del();
+    return 0;
+}
+
+int main() {
+    FILE* f = fopen("input.txt", "r+");
+    vector<string_t> nodes;
+    if (f == nullptr)
+        isError("Problems with file");
+    bool check;
+    do {
+        int numOfNodes = fillNodes(f, nodes);
+        matrix edges = fillEdges(f, numOfEdges());
+        check = makeFrame(edges, numOfNodes, f, nodes);
+    } while (check);
+    return 0;
+}
