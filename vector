@@ -1,0 +1,71 @@
+//#include "vector.h"
+
+//template <typename T>
+//vec::vector (int i) {
+//    value = new T;
+//    maxSize = i;
+//}
+
+template <typename T>
+void vec::vector<T>::exp () {
+    T* temp = new T [maxSize*2];
+    for (int i = 0; i < listSize; i++)
+        temp[i] = value[i];
+    value = temp;
+    delete temp;
+    maxSize *= 2;
+}
+
+template <typename T>
+void vec::vector<T>::push_back (T val) {
+    if (listSize < maxSize)
+        value[listSize + 1] = val;
+    else {
+        exp();
+        push_back(val);
+    }
+}
+
+//template <typename T>
+//bool vec::vector<T>::operator == (vector<T> a, vector<T> b) {
+//    if (a.size() != b.size())
+//        return 0;
+//    bool flag = true;
+//    for (int i = 0; i < a.size(); i++) {
+//        if (a[i] == b[i])
+//            flag = true;
+//        else {
+//            flag = false;
+//            break;
+//        }
+//    }
+//    return flag;
+//}
+
+template <typename T>
+void vec::vector<T>::remove (int index) {
+    T temp = new T[listSize - 1];
+    int i = 0;
+    for (; i < index; i++)
+        temp[i] = value[i];
+    i++;
+    for (; i < listSize; i++)
+        temp[i-1] = value[i];
+    value = temp;
+    delete(temp);
+}
+
+template <typename T>
+void vec::vector<T>::shift (int i){
+    if (listSize < maxSize) {
+        int j;
+        listSize++;
+        for (j = listSize; j > i; j--) {
+            value[j] = value[j - 1];
+        }
+    }
+    else {
+        exp();
+        return shift(i);
+    }
+}
